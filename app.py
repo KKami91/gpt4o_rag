@@ -5,6 +5,7 @@ from io import StringIO
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.text_splitter import CharacterTextSplitter
+from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAI
 from langchain.chains import RetrievalQA
 
@@ -42,8 +43,8 @@ def setup_rag_model(csv_data):
         st.error(f"Error initializing FAISS: {str(e)}")
         st.stop()
 
-    # RAG 모델 설정
-    llm = OpenAI(model_name="gpt-4", temperature=0)
+    # RAG 모델 설정 (ChatOpenAI 사용)
+    llm = ChatOpenAI(model_name="gpt-4", temperature=0)
     qa_chain = RetrievalQA.from_chain_type(
         llm=llm,
         chain_type="stuff",
