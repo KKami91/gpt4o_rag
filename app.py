@@ -4,9 +4,16 @@ import openai
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 from langchain_openai import ChatOpenAI
 from langchain.agents.agent_types import AgentType
+import os
 
 # OpenAI API 키 설정
-openai.api_key = st.secrets["openai"]["api_key"]
+if 'OPENAI_API_KEY' in st.secrets:
+    os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
+elif 'OPENAI_API_KEY' in os.environ:
+    pass
+else:
+    st.error("OpenAI API 키가 설정되지 않았습니다.")
+    st.stop()
 
 # Streamlit 설정
 st.set_page_config(page_title="CSV 데이터 분석", layout="wide")
