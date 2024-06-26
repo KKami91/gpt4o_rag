@@ -2,32 +2,25 @@ import streamlit as st
 import pandas as pd
 import os
 from io import StringIO
-from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
+from langchain.text_splitter import CharacterTextSplitter
 from langchain.llms import OpenAI
 from langchain.chains import RetrievalQA
 
 # OpenAI API 키 설정
-os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-
-
 if 'OPENAI_API_KEY' in st.secrets:
     os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
-# 로컬에서 실행 중일 때
 elif 'OPENAI_API_KEY' in os.environ:
     pass
 else:
     raise ValueError("OpenAI API 키가 설정되지 않았습니다.")
 
-
 # CSV 파일 업로드 함수
 def upload_csv():
     uploaded_file = st.file_uploader("CSV 파일을 업로드하세요", type="csv")
     if uploaded_file is not None:
-        # StringIO 객체를 사용하여 파일 내용을 문자열로 읽기
         stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
-        # 파일 내용을 문자열로 반환
         return stringio.read()
     return None
 
@@ -46,7 +39,7 @@ def setup_rag_model(csv_data):
     os.makedirs(persist_directory, exist_ok=True)
 
     # Chroma 벡터 저장소 생성
-    vectorstore = Chroma.from_texts(texts, embeddings, persist_directory=persist_directory)
+    vectorstore = Chroma.from_texts(texts, embedding=embeddings, persist_directory=persist_directory)
 
     # RAG 모델 설정
     llm = OpenAI(model_name="gpt-4", temperature=0)
