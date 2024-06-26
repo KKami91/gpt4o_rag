@@ -11,6 +11,16 @@ from langchain.chains import RetrievalQA
 # OpenAI API 키 설정
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
+
+if 'OPENAI_API_KEY' in st.secrets:
+    os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
+# 로컬에서 실행 중일 때
+elif 'OPENAI_API_KEY' in os.environ:
+    pass
+else:
+    raise ValueError("OpenAI API 키가 설정되지 않았습니다.")
+
+
 # CSV 파일 업로드 함수
 def upload_csv():
     uploaded_file = st.file_uploader("CSV 파일을 업로드하세요", type="csv")
