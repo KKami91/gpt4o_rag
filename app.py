@@ -3,19 +3,10 @@ import pandas as pd
 import os
 from io import StringIO
 from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import Chroma
+from langchain.vectorstores import FAISS
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.llms import OpenAI
 from langchain.chains import RetrievalQA
-
-# chromadb 임포트 문제 해결을 위한 시도
-try:
-    import chromadb
-    from chromadb.config import Settings
-except ImportError as e:
-    st.error(f"Failed to import chromadb: {str(e)}")
-    st.error("Please check if chromadb is installed correctly.")
-    st.stop()
 
 # OpenAI API 키 설정
 if 'OPENAI_API_KEY' in st.secrets:
@@ -44,25 +35,11 @@ def setup_rag_model(csv_data):
     # 임베딩 생성
     embeddings = OpenAIEmbeddings()
 
-    # 임시 디렉토리 생성
-    persist_directory = os.path.join(os.getcwd(), 'chroma_db')
-    os.makedirs(persist_directory, exist_ok=True)
-
     try:
-        # Chroma 클라이언트 초기화 (DuckDB 사용)
-        client = chromadb.Client(Settings(
-            chroma_db_impl="duckdb+parquet",
-            persist_directory=persist_directory
-        ))
-
-        # Chroma 벡터 저장소 생성
-        vectorstore = Chroma.from_texts(
-            texts=texts,
-            embedding=embeddings,
-            client=client
-        )
+        # FAISS 벡터 저장소 생성
+        vectorstore = FAISS.from_texts(texts, embeddings)
     except Exception as e:
-        st.error(f"Error initializing Chroma: {str(e)}")
+        st.error(f"Error initializing FAISS: {str(e)}")
         st.stop()
 
     # RAG 모델 설정
@@ -100,7 +77,6 @@ else:
 # 디버그 정보 표시
 st.write("### Debug Information")
 st.write("Python version:", os.sys.version)
-st.write("Chromadb version:", chromadb.__version__)
 
 import pkg_resources
 st.write("Installed Packages:")
