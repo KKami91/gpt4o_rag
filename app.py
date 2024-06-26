@@ -9,7 +9,8 @@ from langchain.llms import OpenAI
 from langchain.chains import RetrievalQA
 import pkg_resources
 import sys
-import pkg_resources
+
+import chromadb
 
 st.write("Python System Path:")
 for path in sys.path:
@@ -63,17 +64,16 @@ def setup_rag_model(csv_data):
     # 임시 디렉토리 생성
     persist_directory = os.path.join(os.getcwd(), 'chroma_db')
     os.makedirs(persist_directory, exist_ok=True)
+    
+    # Chroma 클라이언트 초기화 (인메모리 모드)
+    client = chromadb.Client()
 
     # Chroma 벡터 저장소 생성
-    try:
-        vectorstore = Chroma.from_texts(
-            texts=texts,
-            embedding=embeddings,
-            persist_directory=persist_directory
-        )
-    except ImportError:
-        st.error("chromadb를 import 할 수 없습니다. 설치 상태를 확인해주세요.")
-        st.stop()
+    vectorstore = Chroma.from_texts(
+        texts=texts,
+        embedding=embeddings,
+        client=client
+    )
 
     # RAG 모델 설정
     llm = OpenAI(model_name="gpt-4", temperature=0)
