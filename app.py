@@ -8,6 +8,7 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
+from io import StringIO
 
 # OpenAI API 키 설정
 if 'OPENAI_API_KEY' in st.secrets:
@@ -17,6 +18,32 @@ elif 'OPENAI_API_KEY' in os.environ:
 else:
     st.error("OpenAI API 키가 설정되지 않았습니다.")
     st.stop()
+
+
+
+def analyze_csv(csv_data):
+    # CSV 데이터를 DataFrame으로 변환
+    df = pd.read_csv(StringIO(csv_data))
+    
+    # 기본 정보 추출
+    info = {
+        "columns": df.columns.tolist(),
+        "shape": df.shape,
+        "dtypes": df.dtypes.to_dict(),
+        "summary": df.describe().to_dict(),
+        "missing_values": df.isnull().sum().to_dict()
+    }
+    
+    # 데이터 타입별 분석
+    for column in df.columns:
+        if df[column].dtype == 'object':
+            info[f"{column}_unique_values"] = df[column].nunique()
+            info[f"{column}_top_values"] = df[column].value_counts().head().to_dict()
+        elif np.issubdtype(df[column].dtype, np.number):
+            info[f"{column}_mean"] = df[column].mean()
+            info[f"{column}_median"] = df[column].median()
+    
+    return info
 
 # CSV 파일 업로드 함수
 def upload_csv():
@@ -28,10 +55,18 @@ def upload_csv():
 
 # 데이터 전처리 및 RAG 모델 설정 함수
 @st.cache_resource
+# RAG 모델 설정 함수 수정
 def setup_rag_model(csv_data):
-    # 텍스트 분할
+    # CSV 분석 정보 추출
+    csv_analysis = analyze_csv(csv_data)
+    
+    # 기존의 텍스트 처리 로직
     text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     texts = text_splitter.split_text(csv_data)
+    
+    # CSV 분석 정보를 텍스트에 추가
+    analysis_text = f"CSV Analysis:\n{str(csv_analysis)}\n\n"
+    texts = [analysis_text] + texts
 
     # 임베딩 생성
     embeddings = OpenAIEmbeddings()
@@ -80,17 +115,22 @@ if st.session_state.qa_chain:
 
     if user_input:
         try:
-            # 챗봇 응답 생성
-            response = st.session_state.qa_chain({"question": user_input})
-            st.session_state.chat_history.append(("사용자", user_input))
-            st.session_state.chat_history.append(("챗봇", response['answer']))
-
-            # 대화 히스토리 표시
-            for role, text in st.session_state.chat_history:
-                if role == "사용자":
-                    st.write(f"👤 사용자: {text}")
-                else:
-                    st.write(f"🤖 챗봇: {text}")
+            # 사용자 입력에 CSV 분석 요청 감지
+            if "analyze" in user_input.lower() and "csv" in user_input.lower():
+                csv_analysis = analyze_csv(csv_data)
+                st.write("CSV 파일 분석 결과:", csv_analysis)
+            else:
+                # 기존의 챗봇 응답 생성 로직
+                response = st.session_state.qa_chain({"question": user_input})
+                st.session_state.chat_history.append(("사용자", user_input))
+                st.session_state.chat_history.append(("챗봇", response['answer']))
+                
+                # 대화 히스토리 표시
+                for role, text in st.session_state.chat_history:
+                    if role == "사용자":
+                        st.write(f"👤 사용자: {text}")
+                    else:
+                        st.write(f"🤖 챗봇: {text}")
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
 else:
