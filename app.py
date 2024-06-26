@@ -8,6 +8,21 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain.llms import OpenAI
 from langchain.chains import RetrievalQA
 import pkg_resources
+import sys
+import pkg_resources
+
+st.write("Python System Path:")
+for path in sys.path:
+    st.write(path)
+    
+
+st.write("Chromadb Dependencies:")
+try:
+    dist = pkg_resources.get_distribution("chromadb")
+    for req in dist.requires():
+        st.write(f"{req.name}: {pkg_resources.get_distribution(req.name).version}")
+except pkg_resources.DistributionNotFound:
+    st.error("chromadb is not installed")
 
 st.write("Installed Packages:")
 installed_packages = pkg_resources.working_set
