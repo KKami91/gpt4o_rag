@@ -5,6 +5,12 @@ from langchain.llms import OpenAI
 import os
 import matplotlib.pyplot as plt
 
+from langchain.chat_models import ChatOpenAI
+from langchain.chains import ConversationalRetrievalChain
+from langchain.memory import ConversationBufferMemory
+from io import StringIO
+import numpy as np
+
 # OpenAI API 키 설정
 if 'OPENAI_API_KEY' in st.secrets:
     os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
@@ -27,7 +33,7 @@ if uploaded_file is not None:
     st.write(df.head())
 
     # Pandas DataFrame Agent 생성
-    agent = create_pandas_dataframe_agent(OpenAI(temperature=0), df, verbose=True)
+    agent = create_pandas_dataframe_agent(ChatOpenAI(temperature=0, model='gpt-4o'), df, verbose=True)
 
     # 사용자 질문 입력
     user_question = st.text_input("데이터에 대해 질문하세요:")
