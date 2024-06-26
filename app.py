@@ -8,6 +8,9 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain.llms import OpenAI
 from langchain.chains import RetrievalQA
 
+st.set_option('deprecation.showPyplotGlobalUse', False)
+st.set_option('client.showErrorDetails', True)
+
 # OpenAI API 키 설정
 if 'OPENAI_API_KEY' in st.secrets:
     os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
