@@ -7,6 +7,14 @@ from langchain.vectorstores import Chroma
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.llms import OpenAI
 from langchain.chains import RetrievalQA
+import pkg_resources
+
+st.write("Installed Packages:")
+installed_packages = pkg_resources.working_set
+installed_packages_list = sorted(["%s==%s" % (i.key, i.version) for i in installed_packages])
+for package in installed_packages_list:
+    st.write(package)
+
 
 st.set_option('deprecation.showPyplotGlobalUse', False)
 st.set_option('client.showErrorDetails', True)
@@ -34,6 +42,7 @@ def setup_rag_model(csv_data):
     text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
     texts = text_splitter.split_text(csv_data)
 
+    # 임베딩 생성
     embeddings = OpenAIEmbeddings()
 
     # 임시 디렉토리 생성
@@ -41,11 +50,15 @@ def setup_rag_model(csv_data):
     os.makedirs(persist_directory, exist_ok=True)
 
     # Chroma 벡터 저장소 생성
-    vectorstore = Chroma.from_texts(
-        texts=texts,
-        embedding=embeddings,
-        persist_directory=persist_directory
-    )
+    try:
+        vectorstore = Chroma.from_texts(
+            texts=texts,
+            embedding=embeddings,
+            persist_directory=persist_directory
+        )
+    except ImportError:
+        st.error("chromadb를 import 할 수 없습니다. 설치 상태를 확인해주세요.")
+        st.stop()
 
     # RAG 모델 설정
     llm = OpenAI(model_name="gpt-4", temperature=0)
