@@ -6,3 +6,4 @@ tiktoken==0.7.0
 pandas==2.2.2
 chromadb==0.5.3
 pydantic==2.7.4
+numpy==1.26.4
