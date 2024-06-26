@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
 from langchain.agents import create_pandas_dataframe_agent
+from langchain.chat_models import ChatOpenAI
+from langchain.agents.agent_types import AgentType
 from langchain.llms import OpenAI
 import os
 import matplotlib.pyplot as plt
 
-from langchain.chat_models import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from io import StringIO
@@ -33,7 +34,7 @@ if uploaded_file is not None:
     st.write(df.head())
 
     # Pandas DataFrame Agent 생성
-    agent = create_pandas_dataframe_agent(ChatOpenAI(temperature=0, model='gpt-4o'), df, verbose=True)
+    agent = create_pandas_dataframe_agent(ChatOpenAI(temperature=0, model='gpt-4o'), df, verbose=True, agent_type=AgentType.OPENAI_FUNCTIONS)
 
     # 사용자 질문 입력
     user_question = st.text_input("데이터에 대해 질문하세요:")
