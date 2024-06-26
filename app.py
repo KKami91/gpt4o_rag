@@ -44,7 +44,7 @@ def setup_rag_model(csv_data):
         st.stop()
 
     # RAG 모델 설정 (ChatOpenAI 사용)
-    llm = ChatOpenAI(model_name="gpt-4", temperature=0)
+    llm = ChatOpenAI(model_name="gpt-4o", temperature=0)
     qa_chain = RetrievalQA.from_chain_type(
         llm=llm,
         chain_type="stuff",
