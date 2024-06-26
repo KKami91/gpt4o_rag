@@ -6,8 +6,8 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.chat_models import ChatOpenAI
-from langchain.llms import OpenAI
-from langchain.chains import RetrievalQA
+from langchain.chains import ConversationalRetrievalChain
+from langchain.memory import ConversationBufferMemory
 
 # OpenAI API 키 설정
 if 'OPENAI_API_KEY' in st.secrets:
@@ -30,7 +30,7 @@ def upload_csv():
 @st.cache_resource
 def setup_rag_model(csv_data):
     # 텍스트 분할
-    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+    text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     texts = text_splitter.split_text(csv_data)
 
     # 임베딩 생성
@@ -45,33 +45,54 @@ def setup_rag_model(csv_data):
 
     # RAG 모델 설정 (ChatOpenAI 사용)
     llm = ChatOpenAI(model_name="gpt-4o", temperature=0)
-    qa_chain = RetrievalQA.from_chain_type(
+    memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+    qa_chain = ConversationalRetrievalChain.from_llm(
         llm=llm,
-        chain_type="stuff",
-        retriever=vectorstore.as_retriever()
+        retriever=vectorstore.as_retriever(),
+        memory=memory
     )
     return qa_chain
 
 # Streamlit 앱 설정
 st.title("RAG Chatbot with CSV Upload")
 
+# 세션 상태 초기화
+if 'qa_chain' not in st.session_state:
+    st.session_state.qa_chain = None
+
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
+
 # CSV 파일 업로드
 csv_data = upload_csv()
 
-if csv_data:
+if csv_data and st.session_state.qa_chain is None:
     try:
         # CSV 데이터를 사용하여 RAG 모델 설정
-        qa_chain = setup_rag_model(csv_data)
-
-        # 사용자 입력
-        user_input = st.text_input("질문을 입력하세요:")
-
-        if user_input:
-            # 챗봇 응답 생성
-            response = qa_chain.run(user_input)
-            st.write("챗봇:", response)
+        st.session_state.qa_chain = setup_rag_model(csv_data)
+        st.success("RAG 모델이 성공적으로 설정되었습니다.")
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
+
+if st.session_state.qa_chain:
+    # 사용자 입력
+    user_input = st.text_input("질문을 입력하세요:")
+
+    if user_input:
+        try:
+            # 챗봇 응답 생성
+            response = st.session_state.qa_chain({"question": user_input})
+            st.session_state.chat_history.append(("사용자", user_input))
+            st.session_state.chat_history.append(("챗봇", response['answer']))
+
+            # 대화 히스토리 표시
+            for role, text in st.session_state.chat_history:
+                if role == "사용자":
+                    st.write(f"👤 사용자: {text}")
+                else:
+                    st.write(f"🤖 챗봇: {text}")
+        except Exception as e:
+            st.error(f"An error occurred: {str(e)}")
 else:
     st.write("CSV 파일을 업로드해주세요.")
 
