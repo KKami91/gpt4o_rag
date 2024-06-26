@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
+import os
 from io import StringIO
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.llms import OpenAI
 from langchain.chains import RetrievalQA
-import os
 
 # OpenAI API 키 설정
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
@@ -23,14 +23,20 @@ def upload_csv():
 
 # 데이터 전처리 및 RAG 모델 설정 함수
 @st.cache_resource
-def setup_rag_model(data):
+def setup_rag_model(csv_data):
     # 텍스트 분할
     text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-    texts = text_splitter.split_text(data)
+    texts = text_splitter.split_text(csv_data)
 
-    # 임베딩 생성 및 벡터 저장소 생성
+    # 임베딩 생성
     embeddings = OpenAIEmbeddings()
-    vectorstore = Chroma.from_texts(texts, embeddings)
+
+    # 임시 디렉토리 생성
+    persist_directory = os.path.join(os.getcwd(), 'chroma_db')
+    os.makedirs(persist_directory, exist_ok=True)
+
+    # Chroma 벡터 저장소 생성
+    vectorstore = Chroma.from_texts(texts, embeddings, persist_directory=persist_directory)
 
     # RAG 모델 설정
     llm = OpenAI(model_name="gpt-4", temperature=0)
