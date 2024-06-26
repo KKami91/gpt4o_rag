@@ -9,6 +9,7 @@ from langchain.chat_models import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from io import StringIO
+import numpy as np
 
 # OpenAI API 키 설정
 if 'OPENAI_API_KEY' in st.secrets:
