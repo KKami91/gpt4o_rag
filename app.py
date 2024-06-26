@@ -7,33 +7,15 @@ from langchain.vectorstores import Chroma
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.llms import OpenAI
 from langchain.chains import RetrievalQA
-import pkg_resources
-import sys
 
-import chromadb
-
-st.write("Python System Path:")
-for path in sys.path:
-    st.write(path)
-    
-
-st.write("Chromadb Dependencies:")
+# chromadb 임포트 문제 해결을 위한 시도
 try:
-    dist = pkg_resources.get_distribution("chromadb")
-    for req in dist.requires():
-        st.write(f"{req.name}: {pkg_resources.get_distribution(req.name).version}")
-except pkg_resources.DistributionNotFound:
-    st.error("chromadb is not installed")
-
-st.write("Installed Packages:")
-installed_packages = pkg_resources.working_set
-installed_packages_list = sorted(["%s==%s" % (i.key, i.version) for i in installed_packages])
-for package in installed_packages_list:
-    st.write(package)
-
-
-st.set_option('deprecation.showPyplotGlobalUse', False)
-st.set_option('client.showErrorDetails', True)
+    import chromadb
+    from chromadb.config import Settings
+except ImportError as e:
+    st.error(f"Failed to import chromadb: {str(e)}")
+    st.error("Please check if chromadb is installed correctly.")
+    st.stop()
 
 # OpenAI API 키 설정
 if 'OPENAI_API_KEY' in st.secrets:
@@ -41,7 +23,8 @@ if 'OPENAI_API_KEY' in st.secrets:
 elif 'OPENAI_API_KEY' in os.environ:
     pass
 else:
-    raise ValueError("OpenAI API 키가 설정되지 않았습니다.")
+    st.error("OpenAI API 키가 설정되지 않았습니다.")
+    st.stop()
 
 # CSV 파일 업로드 함수
 def upload_csv():
@@ -64,16 +47,23 @@ def setup_rag_model(csv_data):
     # 임시 디렉토리 생성
     persist_directory = os.path.join(os.getcwd(), 'chroma_db')
     os.makedirs(persist_directory, exist_ok=True)
-    
-    # Chroma 클라이언트 초기화 (인메모리 모드)
-    client = chromadb.Client()
 
-    # Chroma 벡터 저장소 생성
-    vectorstore = Chroma.from_texts(
-        texts=texts,
-        embedding=embeddings,
-        client=client
-    )
+    try:
+        # Chroma 클라이언트 초기화 (DuckDB 사용)
+        client = chromadb.Client(Settings(
+            chroma_db_impl="duckdb+parquet",
+            persist_directory=persist_directory
+        ))
+
+        # Chroma 벡터 저장소 생성
+        vectorstore = Chroma.from_texts(
+            texts=texts,
+            embedding=embeddings,
+            client=client
+        )
+    except Exception as e:
+        st.error(f"Error initializing Chroma: {str(e)}")
+        st.stop()
 
     # RAG 모델 설정
     llm = OpenAI(model_name="gpt-4", temperature=0)
@@ -91,15 +81,30 @@ st.title("RAG Chatbot with CSV Upload")
 csv_data = upload_csv()
 
 if csv_data:
-    # CSV 데이터를 사용하여 RAG 모델 설정
-    qa_chain = setup_rag_model(csv_data)
+    try:
+        # CSV 데이터를 사용하여 RAG 모델 설정
+        qa_chain = setup_rag_model(csv_data)
 
-    # 사용자 입력
-    user_input = st.text_input("질문을 입력하세요:")
+        # 사용자 입력
+        user_input = st.text_input("질문을 입력하세요:")
 
-    if user_input:
-        # 챗봇 응답 생성
-        response = qa_chain.run(user_input)
-        st.write("챗봇:", response)
+        if user_input:
+            # 챗봇 응답 생성
+            response = qa_chain.run(user_input)
+            st.write("챗봇:", response)
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
 else:
     st.write("CSV 파일을 업로드해주세요.")
+
+# 디버그 정보 표시
+st.write("### Debug Information")
+st.write("Python version:", os.sys.version)
+st.write("Chromadb version:", chromadb.__version__)
+
+import pkg_resources
+st.write("Installed Packages:")
+installed_packages = pkg_resources.working_set
+installed_packages_list = sorted([f"{i.key}=={i.version}" for i in installed_packages])
+for package in installed_packages_list:
+    st.write(package)
